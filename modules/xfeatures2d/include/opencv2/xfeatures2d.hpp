@@ -258,6 +258,26 @@ public:
 
 };
 
+/** @brief Class implementing DASC descriptor, described in @cite Kim_2015_CVPR .
+
+@param n_half
+@param epsilon
+@param down_size
+
+ */
+class CV_EXPORTS DASC : public DescriptorExtractor
+{
+public:
+
+    static Ptr<DASC> create( int n_half = 2, float epsilon = 0.08, int down_size = 2 );
+
+    /**@overload
+     * @param image image to extract descriptors
+     * @param descriptors resulted descriptors array for all image pixels
+     */
+    virtual void compute( InputArray image, OutputArray descriptors ) = 0;
+
+};
 
 //! @}
 
