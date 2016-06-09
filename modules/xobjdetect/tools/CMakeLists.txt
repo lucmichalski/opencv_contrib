@@ -1,1 +1,3 @@
-add_subdirectory(waldboost_detector)
+if(OPENCV_CONTRIB_XOBJECTDETECT_WALDBOOST_DETECTOR)
+	add_subdirectory(waldboost_detector)
+endif()
