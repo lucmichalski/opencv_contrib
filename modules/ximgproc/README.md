@@ -9,3 +9,5 @@ Extended Image Processing
 6. Superpixels
 7. Graph segmentation
 8. Selective search from segmentation
+9. Deriche Filter
+10. Paillou Filter
