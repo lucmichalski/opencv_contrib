@@ -43,6 +43,7 @@
 #include <opencv2/core/ocl.hpp>
 #include <iostream>
 #include "npy_blob.hpp"
+#include <opencv2/dnn/all_layers.hpp>
 
 namespace cvtest
 {
@@ -63,6 +64,8 @@ static void testLayer(String basename, bool useCaffeModel = false, bool useCommo
 
     String inpfile = (useCommonInputBlob) ? _tf("blob.npy") : _tf(basename + ".input.npy");
     String outfile = _tf(basename + ".npy");
+
+    cv::setNumThreads(cv::getNumberOfCPUs());
 
     Net net;
     {
@@ -172,6 +175,121 @@ TEST(Layer_Test_Reshape_Split_Slice, Accuracy)
     Blob output = net.getBlob("output");
 
     normAssert(input, output);
+}
+
+class Layer_LSTM_Test : public ::testing::Test
+{
+public:
+    int Nx, Nc;
+    Blob Wh, Wx, b;
+    Ptr<LSTMLayer> layer;
+
+    std::vector<Blob> inputs, outputs;
+    std::vector<Blob*> inputsPtr;
+
+    Layer_LSTM_Test(int _Nx = 31, int _Nc = 100)
+    {
+        Nx = _Nx;
+        Nc = _Nc;
+
+        Wh = Blob(BlobShape(4 * Nc, Nc));
+        Wx = Blob(BlobShape(4 * Nc, Nx));
+        b  = Blob(BlobShape(4 * Nc, 1));
+
+        layer = LSTMLayer::create();
+        layer->setWeights(Wh, Wx, b);
+    }
+
+    void allocateAndForward()
+    {
+        inputsPtr.clear();
+        for (size_t i = 0; i < inputs.size(); i++)
+            inputsPtr.push_back(&inputs[i]);
+
+        layer->allocate(inputsPtr, outputs);
+        layer->forward(inputsPtr, outputs);
+    }
+};
+
+TEST_F(Layer_LSTM_Test, BasicTest_1)
+{
+    inputs.push_back(Blob(BlobShape(1, 2, 3, Nx)));
+    allocateAndForward();
+
+    EXPECT_EQ(outputs.size(), 2);
+    EXPECT_EQ(outputs[0].shape(), BlobShape(1, 2, 3, Nc));
+    EXPECT_EQ(outputs[1].shape(), BlobShape(1, 2, 3, Nc));
+}
+
+TEST_F(Layer_LSTM_Test, BasicTest_2)
+{
+    inputs.push_back(Blob(BlobShape(1, 2, 3, Nx)));
+    inputs.push_back(Blob(BlobShape(1, 2, 3, Nc)));
+    inputs.push_back(Blob(BlobShape(1, 2, 3, Nc)));
+    allocateAndForward();
+
+    EXPECT_EQ(outputs.size(), 2);
+    EXPECT_EQ(outputs[0].shape(), BlobShape(1, 2, 3, Nc));
+    EXPECT_EQ(outputs[1].shape(), BlobShape(1, 2, 3, Nc));
+}
+
+
+class Layer_RNN_Test : public ::testing::Test
+{
+public:
+    int Nx, Nh, No;
+    Blob Whh, Wxh, bh, Who, bo;
+    Ptr<RNNLayer> layer;
+
+    std::vector<Blob> inputs, outputs;
+    std::vector<Blob*> inputsPtr;
+
+    Layer_RNN_Test(int _Nx = 31, int _Nh = 64, int _No = 100)
+    {
+        Nx = _Nx;
+        Nh = _Nh;
+        No = _No;
+
+        Whh = Blob(BlobShape(Nh, Nh));
+        Wxh = Blob(BlobShape(Nh, Nx));
+        bh  = Blob(BlobShape(Nh, 1));
+        Who = Blob(BlobShape(No, Nh));
+        bo  = Blob(BlobShape(No, 1));
+
+        layer = RNNLayer::create();
+        layer->setWeights(Whh, Wxh, bh, Who, bo);
+    }
+
+    void allocateAndForward()
+    {
+        inputsPtr.clear();
+        for (size_t i = 0; i < inputs.size(); i++)
+            inputsPtr.push_back(&inputs[i]);
+
+        layer->allocate(inputsPtr, outputs);
+        layer->forward(inputsPtr, outputs);
+    }
+};
+
+TEST_F(Layer_RNN_Test, BasicTest_1)
+{
+    inputs.push_back(Blob(BlobShape(1, 2, 3, Nx)));
+    allocateAndForward();
+
+    EXPECT_EQ(outputs.size(), 2);
+    EXPECT_EQ(outputs[0].shape(), BlobShape(1, 2, 3, No));
+    EXPECT_EQ(outputs[1].shape(), BlobShape(1, 2, 3, Nh));
+}
+
+TEST_F(Layer_RNN_Test, BasicTest_2)
+{
+    inputs.push_back(Blob(BlobShape(1, 2, 3, Nx)));
+    inputs.push_back(Blob(BlobShape(1, 2, 3, Nh)));
+    allocateAndForward();
+
+    EXPECT_EQ(outputs.size(), 2);
+    EXPECT_EQ(outputs[0].shape(), BlobShape(1, 2, 3, No));
+    EXPECT_EQ(outputs[1].shape(), BlobShape(1, 2, 3, Nh));
 }
 
 }

@@ -43,7 +43,8 @@
 #include <opencv2/core/ocl.hpp>
 #include "layers_common.hpp"
 #include "convolution_layer.hpp"
-#include "im2col.hpp"
+#include "op_im2col.hpp"
+#include "op_blas.hpp"
 #include <iostream>
 
 namespace cv
@@ -73,6 +74,15 @@ namespace dnn
 
         //TBD
         useOpenCL = params.has("use_opencl");
+
+        #if HAVE_CBLAS
+        {
+            if (getBlasThreads() != cv::getThreadNum())
+            {
+                setBlasThreads(cv::getThreadNum());
+            }
+        }
+        #endif
     }
 
     void ConvolutionLayer::allocate(const std::vector<Blob*> &inputs, std::vector<Blob> &outputs)
@@ -109,7 +119,7 @@ namespace dnn
 
     inline bool ConvolutionLayer::is1x1() const
     {
-        return (kerH == 1 && kerW == 1);
+        return (kerH == 1 && kerW == 1) && (strideW == 1 && strideH == 1); //hotfix with stride
     }
 
     void ConvolutionLayer::forward(std::vector<Blob*> &inputs, std::vector<Blob> &outputs)
@@ -130,13 +140,13 @@ namespace dnn
                     Mat kerMat(outGroupCn, ksize, wgtBlob.type(), wgtBlob.ptr(g*outGroupCn));
                     Mat dstMat(outGroupCn, outH*outW, outBlob.type(), outBlob.ptr(n, g*outGroupCn));
 
-                    cv::gemm(kerMat, colMat, 1, noArray(), 0, dstMat);
+                    gemmCPU(kerMat, colMat, 1, dstMat, 0);
 
                     if (bias)
                     {
                         float *biasPtr = blobs[1].ptrf() + g*outGroupCn;
                         Mat biasMat(outGroupCn, 1, CV_32F, biasPtr);
-                        cv::gemm(biasMat, biasOnesMat, 1, dstMat, 1, dstMat);
+                        gemmCPU(biasMat, biasOnesMat, 1, dstMat, 1); //TODO: gemv
                     }
                 }
             }
@@ -169,9 +179,9 @@ namespace dnn
 #endif // HAVE_OPENCL
 
         if (inpBlob.type() == CV_32F)
-            im2col_cpu((float *)srcPtr, inpGroupCn, inpH, inpW, kerH, kerW, padH, padW, strideH, strideW, (float *)colMat.ptr());
+            im2col_CpuPBody<float>::run((float*)srcPtr, inpGroupCn, inpH, inpW, kerH, kerW, padH, padW, strideH, strideW, colMat.ptr<float>());
         if (inpBlob.type() == CV_64F)
-            im2col_cpu((double*)srcPtr, inpGroupCn, inpH, inpW, kerH, kerW, padH, padW, strideH, strideW, (double*)colMat.ptr());
+            im2col_CpuPBody<double>::run((double*)srcPtr, inpGroupCn, inpH, inpW, kerH, kerW, padH, padW, strideH, strideW, colMat.ptr<double>());
     }
 
     void ConvolutionLayer::computeInpOutShape(const Blob &inpBlob)
@@ -223,7 +233,7 @@ namespace dnn
 
                     Mat convMat(outGroupCn, outH*outW, convBlob.type(), convBlob.ptr(n, g*outGroupCn));
                     Mat wghtMat(outGroupCn, ksize, wghtBlob.type(), wghtBlob.ptr(g*outGroupCn));
-                    cv::gemm(wghtMat, convMat, 1, noArray(), 0, colMat, GEMM_1_T);
+                    gemmCPU(wghtMat, convMat, 1, colMat, 0, GEMM_1_T);
 
                     col2im(dstMat);
 
@@ -231,7 +241,7 @@ namespace dnn
                     {
                         float *biasPtr = blobs[1].ptrf() + g*inpGroupCn;
                         Mat biasMat(inpGroupCn, 1, CV_32F, biasPtr);
-                        cv::gemm(biasMat, biasOnesMat, 1, dstMat, 1, dstMat);
+                        gemmCPU(biasMat, biasOnesMat, 1, dstMat, 1); //TODO: gemv
                     }
                 }
             }
@@ -243,9 +253,9 @@ namespace dnn
         if (is1x1()) return;
 
         if (dstMat.type() == CV_32F)
-            col2im_cpu((float*)colMat.ptr(), inpGroupCn, inpH, inpW, kerH, kerW, padH, padW, strideH, strideW, (float*)dstMat.ptr());
+            col2im_cpu(colMat.ptr<float>(), inpGroupCn, inpH, inpW, kerH, kerW, padH, padW, strideH, strideW, dstMat.ptr<float>());
         if (dstMat.type() == CV_64F)
-            col2im_cpu((double*)colMat.ptr(), inpGroupCn, inpH, inpW, kerH, kerW, padH, padW, strideH, strideW, (double*)dstMat.ptr());
+            col2im_cpu(colMat.ptr<double>(), inpGroupCn, inpH, inpW, kerH, kerW, padH, padW, strideH, strideW, dstMat.ptr<double>());
     }
 }
 }
