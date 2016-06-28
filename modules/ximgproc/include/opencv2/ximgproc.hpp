@@ -51,6 +51,8 @@
 #include "ximgproc/deriche_filter.hpp"
 #include "ximgproc/paillou_filter.hpp"
 
+>>>>>>> Paillou_Filter_/PaillouFilter
+
 /** @defgroup ximgproc Extended Image Processing
   @{
     @defgroup ximgproc_edge Structured forests for fast edge detection

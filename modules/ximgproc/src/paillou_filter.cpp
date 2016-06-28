@@ -451,4 +451,5 @@ UMat GradientPaillouX(UMat op, double a,double w)
     return imDst;
 }
 }
+
 }
