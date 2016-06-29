@@ -51,7 +51,6 @@
 
  OpenCV port by: Cristian Balint <cristian dot balint at gmail dot com>
 
- */
 
 #include "precomp.hpp"
 
@@ -68,9 +67,7 @@ namespace cv
 namespace xfeatures2d
 {
 
-/*
- !VGG implementation
- */
+ //VGG implementation
 class VGG_Impl : public VGG
 {
 
@@ -98,9 +95,7 @@ public:
 
 protected:
 
-    /*
-     * VGG parameters
-     */
+     // VGG parameters
 
     int m_descriptor_size;
 
@@ -113,9 +108,8 @@ protected:
     // sample window
     float m_scale_factor;
 
-    /*
-     * VGG switches
-     */
+    // VGG switches
+
 
     // normalize image
     bool m_img_normalize;
@@ -126,9 +120,7 @@ protected:
     // normalize desc
     bool m_dsc_normalize;
 
-    /*
-     * VGG arrays
-     */
+    // VGG arrays
 
     // image
     Mat m_image;
@@ -138,9 +130,8 @@ protected:
 
 private:
 
-    /*
-     * VGG functions
-     */
+    // VGG functions
+
 
      // initialize parameters
      inline void ini_params( const int PRrows, const int PRcols,
@@ -151,7 +142,7 @@ private:
 }; // END VGG_Impl CLASS
 
 // -------------------------------------------------
-/* VGG internal routines */
+// VGG internal routines
 
 // sample 64x64 patch from image given keypoint
 static inline void get_patch( const KeyPoint kp, Mat& Patch, const Mat& image,
@@ -315,7 +306,7 @@ static void get_desc( const Mat Patch, Mat& PatchTrans, int anglebins, bool img_
 }
 
 // -------------------------------------------------
-/* VGG interface implementation */
+// VGG interface implementation
 
 struct ComputeDescInvoker : ParallelLoopBody
 {
@@ -522,3 +513,4 @@ Ptr<VGG> VGG::create( int desc, float isigma, bool img_normalize, bool use_scale
 
 } // END NAMESPACE XFEATURES2D
 } // END NAMESPACE CV
+ */
