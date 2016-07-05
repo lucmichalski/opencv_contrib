@@ -124,8 +124,7 @@ void BlockMeanHash::compute(cv::InputArray inputArr,
     mean_.resize(numOfBlocks);
     hash.create(1, hashSize, CV_8U);
     findMean(hash, pixRowStep, pixColStep);
-    //hash.create(1, hashSize, CV_8U);
-    //createHash(hash);
+
 }
 
 double BlockMeanHash::compare(cv::InputArray hashOne,
